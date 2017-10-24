@@ -5,9 +5,25 @@
  This example code is in the public domain.
  */
 //#include<Serial.h>
+
+#define _DBG_NFO
+#ifdef _DBG_NFO
+#define DBG_INFO(text) Serial.println(text);
+#else
+#define DBG_INFO(text)
+#endif
+
+#include <Wire.h>   
+#include <LiquidCrystal_I2C.h>
+
 float Version = 0.1;
+
+
 // Pin 13 has an LED connected on most Arduino boards.
 // give it a name:
+
+
+
 int led = 13;
 unsigned long  tick=0;
 
@@ -23,12 +39,22 @@ byte inlet_temp   = 0;    //Actual air temperature read from sensor on inlet
 byte exhaust_temp = 0;    //Actual air temperature read from sensor on exhaust
 byte heater_state = 0;    //Heater power (0-OFF, 1-ON)
 
+LiquidCrystal_I2C lcd(0x3f, 2, 1, 0, 4, 5, 6, 7, 3, POSITIVE);
+
 // the setup routine runs once when you press reset:
 void setup() {                
   // initialize the digital pin as an output.
   pinMode(led, OUTPUT);
+  //Initialize LCD
+  lcd.begin(20,4);
+  //Initialize Serial port 
   Serial.begin(9600);  
-  
+  lcd.backlight();   //Backlight on 
+  lcd.setCursor(0,0); //Set cursor position to 0,0
+  lcd.print("Sterownik sauny");
+  lcd.setCursor(0,1); //Set cursor position to 0,1
+  lcd.print("Wersja 1.0");
+  DBG_INFO("Boot completed");
 }
 
 void temp_ctrl() {
