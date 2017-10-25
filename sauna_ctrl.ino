@@ -22,7 +22,8 @@ float Version = 0.1;
 // Pin 13 has an LED connected on most Arduino boards.
 // give it a name:
 
-
+#define HEATER 4
+LiquidCrystal_I2C lcd(0x3f, 2, 1, 0, 4, 5, 6, 7, 3, POSITIVE);
 
 int led = 13;
 unsigned long  tick=0;
@@ -39,12 +40,8 @@ byte inlet_temp   = 0;    //Actual air temperature read from sensor on inlet
 byte exhaust_temp = 0;    //Actual air temperature read from sensor on exhaust
 byte heater_state = 0;    //Heater power (0-OFF, 1-ON)
 
-LiquidCrystal_I2C lcd(0x3f, 2, 1, 0, 4, 5, 6, 7, 3, POSITIVE);
-
-// the setup routine runs once when you press reset:
-void setup() {                
-  // initialize the digital pin as an output.
-  pinMode(led, OUTPUT);
+void ui_setup()
+{
   //Initialize LCD
   lcd.begin(20,4);
   //Initialize Serial port 
@@ -53,11 +50,31 @@ void setup() {
   lcd.setCursor(0,0); //Set cursor position to 0,0
   lcd.print("Sterownik sauny");
   lcd.setCursor(0,1); //Set cursor position to 0,1
-  lcd.print("Wersja 1.0");
-  DBG_INFO("Boot completed");
+  lcd.print("Stasio plasio");
 }
 
-void temp_ctrl() {
+void ui_status_loop()
+{
+  lcd.setCursor(19,3);
+  if( heater_state == 1 ) 
+  {
+    lcd.print("H");
+  }
+  else
+  {
+    lcd.print(" ");
+  }
+}
+
+
+void temp_ctrl_setup()
+{
+  //Set PIN 4 to control Heater power relay
+  pinMode(HEATER, OUTPUT);
+}
+
+void temp_ctrl_loop() {
+  static byte tc_tic=0;
   byte temp_error; //Temperature error
   //Temperature measurement read
   temp_error = set_temp;
@@ -70,12 +87,24 @@ void temp_ctrl() {
   }
   if( heater_state == 0)
   {
-    if( temp_error > ctrl_hist) heater_state = 1; //If temperature error is higher than hysteresis turn the heater ON
+ //   if( temp_error > ctrl_hist) heater_state = 1; //If temperature error is higher than hysteresis turn the heater ON
   }
   else
   {
-    if( temp_error < -ctrl_hist) heater_state = 0; //If temperature error is higher than hysteresis turn the heater OFF
+  //  if( temp_error < -ctrl_hist) heater_state = 0; //If temperature error is higher than hysteresis turn the heater OFF
   }
+  if(tc_tic == 0){
+    tc_tic =1;
+    heater_state = 0;
+    digitalWrite(HEATER, LOW);
+  }
+  else
+  {
+    tc_tic=0;
+    heater_state = 1;
+    digitalWrite(HEATER, HIGH);
+  }
+  
 }
 
 void serial_report()
@@ -94,6 +123,16 @@ void serial_report()
   
 }
 
+// the setup routine runs once when you press reset:
+void setup() {                
+  // initialize the digital pin as an output.
+  pinMode(led, OUTPUT);
+  ui_setup();
+  temp_ctrl_setup();
+  DBG_INFO("Boot completed");
+}
+
+
 // the loop routine runs over and over again forever:
 void loop() {
   digitalWrite(led, HIGH);   // turn the LED on (HIGH is the voltage level)
@@ -101,8 +140,10 @@ void loop() {
   digitalWrite(led, LOW);    // turn the LED off by making the voltage LOW
   delay(1000);               // wait for a second
   tick++;
+  temp_ctrl_loop();
   serial_report();
   //Serial.print("Tick count:");
   Serial.println(tick,DEC);
+  ui_status_loop();
 }
 
