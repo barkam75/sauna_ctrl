@@ -25,8 +25,9 @@ float Version = 0.1;
 #define SALT_LAMP_PIN 9
 #define TEMP_SENSOR_PIN 12
 #define LED_STRING_PIN 6
-#define ENCODER_RIGHT_PIN 10
-#define ENCODER_LEFT_PIN 11
+#define ENCODER_RIGHT_PIN 11
+#define ENCODER_LEFT_PIN 5
+#define ENCODER_PUSH 4
 #define LED_PIN 13
 
 
@@ -44,7 +45,8 @@ Adafruit_NeoPixel pixels = Adafruit_NeoPixel(NUMPIXELS, LED_STRING_PIN, NEO_GRB 
 OneWire temp_sensor(10);
 byte temp_sensor_addr[] = {0x28,0x55,0xA3,0xE3,0x08,00,00,0x42};
 byte temp_data[12];
-byte pixel_color = 10; //Set pixel color to white by default
+byte pixel_color = 11; //Set pixel color to white by default
+byte pixel_color_prev = 0;
 
 //OneWire  ds(TEMP_SENSOR_PIN);
 /*Menu - Browsing using wheel
@@ -65,30 +67,32 @@ byte pixel_color = 10; //Set pixel color to white by default
     unsigned char blue;
  }RGB;
 
-const char *color_table[] = {
+const char *color_table[] = { "OFF",
                               "Red",
                               "Orange",
                               "Yellow",
                               "Green",
-                              "Strong Green"
+                              "Strong Green",
                               "Blue",
                               "Strong blue",
                               "Indigo",
                               "Purple",
                               "Pink",
-                              "White"
+                              "White",
+                              "Error"
 };
 
- const RGB chromo_table[11] = {
-                        {230,29,7},     //RED
-                        {255,123,0},    //ORANGE
-                        {255,248,82},   //YELLOW
+ const RGB chromo_table[12] = {
+                        {0,0,0},
+                        {255,0,0},     //RED
+                        {255,165,0},    //ORANGE
+                        {255,255,0},   //YELLOW
                         {153,225,100},  //GREEN
-                        {53,183,41},    //STRONG GREEN
+                        {0,255,0},    //STRONG GREEN
                         {45,177,255},   //BLUE
-                        {82,112,255},   //STRONG BLUE
-                        {75,19,211},    //INDIGO
-                        {159,66,230},   //PURPLE
+                        {0,0,255},   //STRONG BLUE
+                        {75,0,130},    //INDIGO
+                        {128,0,128},   //PURPLE
                         {255,126,211},  //PINK
                         {255,255,255}   //WHITE
  };
@@ -107,6 +111,9 @@ void pin_setup()
   digitalWrite(AUDIO_LEFT_CH_RELAY_PIN, HIGH );
   digitalWrite(AUDIO_RIGHT_CH_RELAY_PIN, HIGH );
   pinMode(LED_PIN, OUTPUT);
+  pinMode(ENCODER_RIGHT_PIN, INPUT);
+  pinMode(ENCODER_LEFT_PIN, INPUT);
+  pinMode(ENCODER_PUSH, INPUT);
 }
 
 void temp_sensor_setup()
@@ -162,19 +169,17 @@ void pixel_setup()
 
 void pixel_loop()
 {
-  static byte pixel_cnt =0;
-  pixels.setPixelColor(pixel_cnt, pixels.Color(chromo_table[pixel_color].red,
-                                               chromo_table[pixel_color].green,
-                                               chromo_table[pixel_color].blue)
+  static byte prev_color=0;
+  byte cnt;
+  if(pixel_color != prev_color)
+  {
+    for(cnt=0; cnt<NUMPIXELS; cnt++ )
+    pixels.setPixelColor(cnt, pixels.Color(    chromo_table[pixel_color].red,
+                                             chromo_table[pixel_color].green,
+                                             chromo_table[pixel_color].blue)
                        );
-  pixels.show();
-  if(pixel_cnt < NUMPIXELS )
-  {
-    pixel_cnt ++;
-  }
-  else
-  {
-    pixel_cnt = 0;
+    pixels.show();
+    prev_color = pixel_color;
   }
 }
 
@@ -195,10 +200,32 @@ void ui_loop()
   unsigned long time_stamp;
   lcd.setCursor(0,1);
   lcd.print("Temperatura:");
-  lcd.print(temp,DEC);
+  lcd.print(stove_temp);
+  lcd.print((char)223);
+  lcd.print( "C" );
   lcd.setCursor(0,2);
-  lcd.print(tick);
+ // lcd.print(tick);
+  if(pixel_color != pixel_color_prev )
+  {
+    lcd.setCursor(0,3);
+    lcd.print("                    ");
+    lcd.setCursor(0,3);
+    lcd.print("Kolor:");
+    lcd.print(color_table[pixel_color]);
+    pixel_color_prev = pixel_color;
+  }
+}
 
+void encoder_loop()
+{
+ if(digitalRead(ENCODER_RIGHT_PIN) == 1)  
+    {
+      if(pixel_color<10) pixel_color++;
+    } 
+ if(digitalRead(ENCODER_LEFT_PIN) == 1)
+    {
+      if(pixel_color>0) pixel_color--;
+    }
 }
 
 void serial_report()
@@ -212,9 +239,10 @@ void serial_report()
 // the setup routine runs once when you press reset:
 void setup() {         
   pin_setup();  
-  analogWrite(SALT_LAMP_PIN, 10 );
+  analogWrite(SALT_LAMP_PIN, 255 );
   // initialize the digital pin as an output.
   ui_setup();
+  pixel_setup();
   DBG_INFO("Boot completed");
 }
 
@@ -233,5 +261,7 @@ void loop() {
 //  pixels.show(); // This sends the updated pixel 
   temp_sensor_loop();
   ui_loop();
+  encoder_loop();
+  pixel_loop();
 }
 
