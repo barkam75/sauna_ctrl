@@ -49,15 +49,11 @@ byte pixel_color = 11; //Set pixel color to white by default
 byte pixel_color_prev = 0;
 
 //OneWire  ds(TEMP_SENSOR_PIN);
-/*Menu - Browsing using wheel
- *Screen 1 -Default at boot  
- * Line 1 Time / Date
- * Line 2 Temperature
- * Line 3 Nothing
- * Line 4 Status line (S-SALT LAMP, C-COLOROTHERAPY)
- * 
- * Screen 2 - Colorotherapy
- * 
+/*Connections:
+Temp sensor cable: RED=+5V, YELLOW=Q, BLACK=GND
+Display cable:GREEN=+5V, GRAY=GND, WHITE=SDA, BROWN=SCL
+Encoder cable:WHITE-GREEN=S3, GREEN=S2, WHITE-BLACK=S1B, BLACK=S1A, BLUE=GND, RED=+5V 
+ *
  */
 
  typedef struct 
@@ -220,7 +216,7 @@ void encoder_loop()
 {
  if(digitalRead(ENCODER_RIGHT_PIN) == 1)  
     {
-      if(pixel_color<10) pixel_color++;
+      if(pixel_color<11) pixel_color++;
     } 
  if(digitalRead(ENCODER_LEFT_PIN) == 1)
     {
@@ -246,22 +242,44 @@ void setup() {
   DBG_INFO("Boot completed");
 }
 
+void blink_loop()
+{
+  static unsigned long prv_time = 0;
+  static byte shift=0;
+  static int pattern=0x0440;
+  byte test;
+  if((millis()-prv_time)>20)
+  {
+    test = (pattern & 0x1) == 1 ? HIGH:LOW;
+    digitalWrite(LED_PIN, test);
+    if(shift < 15 )
+    {
+      pattern = pattern >> 1;
+      shift++;
+    }
+    else
+    {
+      pattern =0x0440;
+      shift = 0;
+    }
+    prv_time = millis();
+  }
+  
+}
+
 
 // the loop routine runs over and over again forever:
 void loop() {
-//  digitalWrite(LED_PIN, HIGH);   // turn the LED on (HIGH is the voltage level)
+  //digitalWrite(LED_PIN, HIGH);   // turn the LED on (HIGH is the voltage level)
 //  delay(1000);               // wait for a second
  // digitalWrite(LED_PIN, LOW);    // turn the LED off by making the voltage LOW
 //  delay(1000);               // wait for a second
   tick++;
-  serial_report();
-  //Serial.print("Tick count:");
   Serial.println(tick,DEC);
-//  pixels.setPixelColor(10, pixels.Color(0,150,0)); // Moderately bright green color.
-//  pixels.show(); // This sends the updated pixel 
   temp_sensor_loop();
   ui_loop();
   encoder_loop();
   pixel_loop();
+  blink_loop();
 }
 
