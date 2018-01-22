@@ -109,7 +109,7 @@ void pin_setup()
   pinMode(LED_PIN, OUTPUT);
   pinMode(ENCODER_RIGHT_PIN, INPUT);
   pinMode(ENCODER_LEFT_PIN, INPUT);
-  pinMode(ENCODER_PUSH, INPUT);
+ // pinMode(ENCODER_PUSH, INPUT);
 }
 
 void temp_sensor_setup()
